@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "HabitPulse - Hàbits i Rendiment",
+  "short_name": "HabitPulse",
+  "description": "App mòbil per gestionar els teus hàbits diaris, rendiment al final del dia i estadístiques setmanals.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

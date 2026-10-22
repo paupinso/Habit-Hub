@@ -1,0 +1,6 @@
+{
+  "name": "HabitPulse - Control d'Hàbits i Rendiment",
+  "description": "App mòbil per registrar i millorar els teus hàbits diaris, avaluar el rendiment en acabar el dia i consultar estadístiques setmanals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
