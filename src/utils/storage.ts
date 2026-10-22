@@ -28,9 +28,27 @@ const SURVEYS_KEY = 'habitpulse_surveys_v2';
 const GOALS_KEY = 'habitpulse_goals_v2';
 const PROFILE_KEY = 'habitpulse_profile_v2';
 
+export function safeGetItem(key: string): string | null {
+  try {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(key);
+  } catch (err) {
+    console.warn(`[Storage] getItem failed for "${key}":`, err);
+    return null;
+  }
+}
+
+export function safeSetItem(key: string, value: string): void {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(key, value);
+  } catch (err) {
+    console.warn(`[Storage] setItem failed for "${key}":`, err);
+  }
+}
+
 export function loadAccounts(): UserAccount[] {
-  if (typeof window === 'undefined') return [];
-  const raw = localStorage.getItem(ACCOUNTS_KEY);
+  const raw = safeGetItem(ACCOUNTS_KEY);
   if (!raw) {
     const defaultAcc: UserAccount = {
       id: 'user-pau',
@@ -41,7 +59,7 @@ export function loadAccounts(): UserAccount[] {
       role: 'atleta',
       avatarInitials: 'PP',
     };
-    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify([defaultAcc]));
+    safeSetItem(ACCOUNTS_KEY, JSON.stringify([defaultAcc]));
     return [defaultAcc];
   }
   try {
@@ -52,23 +70,20 @@ export function loadAccounts(): UserAccount[] {
 }
 
 export function saveAccounts(accounts: UserAccount[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+  safeSetItem(ACCOUNTS_KEY, JSON.stringify(accounts));
 }
 
 export function getActiveUserId(): string {
-  if (typeof window === 'undefined') return 'user-pau';
-  const stored = localStorage.getItem(ACTIVE_USER_ID_KEY);
+  const stored = safeGetItem(ACTIVE_USER_ID_KEY);
   if (stored) return stored;
   const accounts = loadAccounts();
   const firstId = accounts[0]?.id || 'user-pau';
-  localStorage.setItem(ACTIVE_USER_ID_KEY, firstId);
+  safeSetItem(ACTIVE_USER_ID_KEY, firstId);
   return firstId;
 }
 
 export function setActiveUserId(userId: string) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(ACTIVE_USER_ID_KEY, userId);
+  safeSetItem(ACTIVE_USER_ID_KEY, userId);
   const accounts = loadAccounts();
   const updated = accounts.map((a) =>
     a.id === userId ? { ...a, lastLoginAt: new Date().toISOString() } : a
@@ -170,13 +185,11 @@ export function deleteAccount(userId: string): void {
 function getKey(baseKey: string): string {
   const userId = getActiveUserId();
   const userScopedKey = `${baseKey}_${userId}`;
-  if (typeof window !== 'undefined') {
-    // If user-pau has no scoped data yet, seamlessly migrate legacy un-scoped data
-    if (userId === 'user-pau' && !localStorage.getItem(userScopedKey)) {
-      const legacy = localStorage.getItem(baseKey);
-      if (legacy) {
-        localStorage.setItem(userScopedKey, legacy);
-      }
+  // If user-pau has no scoped data yet, seamlessly migrate legacy un-scoped data
+  if (userId === 'user-pau' && !safeGetItem(userScopedKey)) {
+    const legacy = safeGetItem(baseKey);
+    if (legacy) {
+      safeSetItem(userScopedKey, legacy);
     }
   }
   return userScopedKey;
@@ -508,10 +521,9 @@ function bootstrapRealisticData(): {
 
 // Ensure initial bootstrap
 function ensureInitialized() {
-  if (typeof window === 'undefined') return;
   const activeId = getActiveUserId();
   const habitsKey = getKey(HABITS_KEY);
-  const rawHabits = localStorage.getItem(habitsKey);
+  const rawHabits = safeGetItem(habitsKey);
   if (!rawHabits) {
     saveHabits(INITIAL_HABITS);
     saveGoals(INITIAL_GOALS);
@@ -519,17 +531,17 @@ function ensureInitialized() {
       const data = bootstrapRealisticData();
       saveLogs(data.logs);
       saveReviews(data.reviews);
-      localStorage.setItem(getKey(SLEEP_KEY), JSON.stringify(data.sleep));
-      localStorage.setItem(getKey(NUTRITION_KEY), JSON.stringify(data.nutrition));
-      localStorage.setItem(getKey(SPORT_KEY), JSON.stringify(data.sports));
-      localStorage.setItem(getKey(SURVEYS_KEY), JSON.stringify(data.surveys));
+      safeSetItem(getKey(SLEEP_KEY), JSON.stringify(data.sleep));
+      safeSetItem(getKey(NUTRITION_KEY), JSON.stringify(data.nutrition));
+      safeSetItem(getKey(SPORT_KEY), JSON.stringify(data.sports));
+      safeSetItem(getKey(SURVEYS_KEY), JSON.stringify(data.surveys));
     } else {
       saveLogs([]);
       saveReviews([]);
-      localStorage.setItem(getKey(SLEEP_KEY), JSON.stringify([]));
-      localStorage.setItem(getKey(NUTRITION_KEY), JSON.stringify([]));
-      localStorage.setItem(getKey(SPORT_KEY), JSON.stringify([]));
-      localStorage.setItem(getKey(SURVEYS_KEY), JSON.stringify([]));
+      safeSetItem(getKey(SLEEP_KEY), JSON.stringify([]));
+      safeSetItem(getKey(NUTRITION_KEY), JSON.stringify([]));
+      safeSetItem(getKey(SPORT_KEY), JSON.stringify([]));
+      safeSetItem(getKey(SURVEYS_KEY), JSON.stringify([]));
     }
   }
 }
@@ -537,55 +549,47 @@ function ensureInitialized() {
 // Habits
 export function loadHabits(): Habit[] {
   ensureInitialized();
-  if (typeof window === 'undefined') return INITIAL_HABITS;
-  const raw = localStorage.getItem(getKey(HABITS_KEY));
+  const raw = safeGetItem(getKey(HABITS_KEY));
   return raw ? JSON.parse(raw) : INITIAL_HABITS;
 }
 
 export function saveHabits(habits: Habit[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(getKey(HABITS_KEY), JSON.stringify(habits));
+  safeSetItem(getKey(HABITS_KEY), JSON.stringify(habits));
 }
 
 // Logs
 export function loadLogs(): HabitLog[] {
   ensureInitialized();
-  if (typeof window === 'undefined') return [];
-  const raw = localStorage.getItem(getKey(LOGS_KEY));
+  const raw = safeGetItem(getKey(LOGS_KEY));
   return raw ? JSON.parse(raw) : [];
 }
 
 export function saveLogs(logs: HabitLog[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(getKey(LOGS_KEY), JSON.stringify(logs));
+  safeSetItem(getKey(LOGS_KEY), JSON.stringify(logs));
 }
 
 // Reviews
 export function loadReviews(): DailyReview[] {
   ensureInitialized();
-  if (typeof window === 'undefined') return [];
-  const raw = localStorage.getItem(getKey(REVIEWS_KEY));
+  const raw = safeGetItem(getKey(REVIEWS_KEY));
   return raw ? JSON.parse(raw) : [];
 }
 
 export function saveReviews(reviews: DailyReview[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(getKey(REVIEWS_KEY), JSON.stringify(reviews));
+  safeSetItem(getKey(REVIEWS_KEY), JSON.stringify(reviews));
 }
 
 // Sleep Records
 export function loadSleepRecords(): SleepRecord[] {
   ensureInitialized();
-  if (typeof window === 'undefined') return [];
-  const raw = localStorage.getItem(getKey(SLEEP_KEY));
+  const raw = safeGetItem(getKey(SLEEP_KEY));
   return raw ? JSON.parse(raw) : [];
 }
 
 export function saveSleepRecord(record: SleepRecord) {
-  if (typeof window === 'undefined') return;
   const list = loadSleepRecords().filter((s) => s.date !== record.date);
   const updated = [record, ...list];
-  localStorage.setItem(getKey(SLEEP_KEY), JSON.stringify(updated));
+  safeSetItem(getKey(SLEEP_KEY), JSON.stringify(updated));
 }
 
 export function getSleepForDate(date: string): SleepRecord {
@@ -607,16 +611,14 @@ export function getSleepForDate(date: string): SleepRecord {
 // Nutrition (5 meals)
 export function loadNutritionDays(): NutritionDay[] {
   ensureInitialized();
-  if (typeof window === 'undefined') return [];
-  const raw = localStorage.getItem(getKey(NUTRITION_KEY));
+  const raw = safeGetItem(getKey(NUTRITION_KEY));
   return raw ? JSON.parse(raw) : [];
 }
 
 export function saveNutritionDay(nut: NutritionDay) {
-  if (typeof window === 'undefined') return;
   const list = loadNutritionDays().filter((n) => n.date !== nut.date);
   const updated = [nut, ...list];
-  localStorage.setItem(getKey(NUTRITION_KEY), JSON.stringify(updated));
+  safeSetItem(getKey(NUTRITION_KEY), JSON.stringify(updated));
 }
 
 export function calculateTotalDayCalories(nutritionDay: NutritionDay): number {
@@ -718,16 +720,14 @@ export function getNutritionForDate(date: string): NutritionDay {
 // Sport Sessions
 export function loadSportSessions(): SportSession[] {
   ensureInitialized();
-  if (typeof window === 'undefined') return [];
-  const raw = localStorage.getItem(getKey(SPORT_KEY));
+  const raw = safeGetItem(getKey(SPORT_KEY));
   return raw ? JSON.parse(raw) : [];
 }
 
 export function saveSportSession(session: SportSession) {
-  if (typeof window === 'undefined') return;
   const list = loadSportSessions().filter((s) => s.date !== session.date || s.id !== session.id);
   const updated = [session, ...list];
-  localStorage.setItem(getKey(SPORT_KEY), JSON.stringify(updated));
+  safeSetItem(getKey(SPORT_KEY), JSON.stringify(updated));
 }
 
 export function getSportForDate(date: string): SportSession | undefined {
@@ -738,16 +738,14 @@ export function getSportForDate(date: string): SportSession | undefined {
 // Daily Surveys
 export function loadDailySurveys(): DailySurvey[] {
   ensureInitialized();
-  if (typeof window === 'undefined') return [];
-  const raw = localStorage.getItem(getKey(SURVEYS_KEY));
+  const raw = safeGetItem(getKey(SURVEYS_KEY));
   return raw ? JSON.parse(raw) : [];
 }
 
 export function saveDailySurvey(survey: DailySurvey) {
-  if (typeof window === 'undefined') return;
   const list = loadDailySurveys().filter((s) => s.date !== survey.date);
   const updated = [survey, ...list];
-  localStorage.setItem(getKey(SURVEYS_KEY), JSON.stringify(updated));
+  safeSetItem(getKey(SURVEYS_KEY), JSON.stringify(updated));
 }
 
 export function getSurveyForDate(date: string): DailySurvey | undefined {
@@ -758,14 +756,12 @@ export function getSurveyForDate(date: string): DailySurvey | undefined {
 // Goals
 export function loadGoals(): PersonalGoal[] {
   ensureInitialized();
-  if (typeof window === 'undefined') return INITIAL_GOALS;
-  const raw = localStorage.getItem(getKey(GOALS_KEY));
+  const raw = safeGetItem(getKey(GOALS_KEY));
   return raw ? JSON.parse(raw) : INITIAL_GOALS;
 }
 
 export function saveGoals(goals: PersonalGoal[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(getKey(GOALS_KEY), JSON.stringify(goals));
+  safeSetItem(getKey(GOALS_KEY), JSON.stringify(goals));
 }
 
 // Habit streak calculation
@@ -981,9 +977,8 @@ export function getWeeklyAnalysis(
 }
 
 export function loadUserProfile(): UserProfile {
-  if (typeof window === 'undefined') return DEFAULT_USER_PROFILE;
   try {
-    const raw = localStorage.getItem(getKey(PROFILE_KEY));
+    const raw = safeGetItem(getKey(PROFILE_KEY));
     if (!raw) return DEFAULT_USER_PROFILE;
     return { ...DEFAULT_USER_PROFILE, ...JSON.parse(raw) };
   } catch (err) {
@@ -993,9 +988,8 @@ export function loadUserProfile(): UserProfile {
 }
 
 export function saveUserProfile(profile: UserProfile): void {
-  if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(
+    safeSetItem(
       getKey(PROFILE_KEY),
       JSON.stringify({
         ...profile,
